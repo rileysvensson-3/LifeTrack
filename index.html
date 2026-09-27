@@ -187,8 +187,8 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   .logo{font-size:clamp(38px,3vw,68px)}
   .nav{font-size:clamp(17px,1.25vw,28px)}
   .nav a{padding:0 .7em}
-  :root{--card-w:clamp(340px, min(31vw, calc((100vh - 230px) * .74)), 820px)}
-  #story .stage{max-width:none;width:100%;grid-template-columns:minmax(0,clamp(420px,38vw,900px)) auto;justify-content:center;gap:clamp(60px,8vw,220px);padding:clamp(80px,9vh,120px) 7vw clamp(100px,12vh,130px)}
+  :root{--card-w:clamp(340px, min(31vw, calc((100vh - 280px) * .74)), 820px)}
+  #story .stage{max-width:none;width:100%;grid-template-columns:minmax(0,clamp(420px,38vw,900px)) auto;justify-content:center;gap:clamp(60px,8vw,220px);padding:clamp(80px,9vh,120px) 7vw clamp(140px,17vh,180px)}
   .captions{height:46vh}
   .cap h1{font-size:clamp(70px,8.2vw,210px)}
   .cap h2{font-size:clamp(44px,4.6vw,120px);max-width:12ch}
@@ -197,7 +197,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   .swatches span{width:clamp(26px,1.9vw,44px);height:clamp(26px,1.9vw,44px)}
   .card-col .player,.progress.m-only{display:none}
   .nowbar{display:grid;grid-template-columns:1fr 1.3fr 1fr;align-items:center;gap:3vw;position:absolute;left:0;right:0;bottom:0;
-    height:clamp(78px,9vh,104px);padding:0 3.2vw;background:var(--black);border-top:5px solid var(--tan);font-size:clamp(14px,1vw,20px)}
+    height:clamp(100px,12vh,132px);padding:0 3.2vw;background:var(--black);border-top:5px solid var(--tan);font-size:clamp(14px,1vw,20px)}
   .np-song{display:flex;align-items:center;gap:1em;min-width:0}
   .np-art{width:3.4em;height:3.4em;flex:none;background:#1a1a1a;border:3px solid var(--tan);position:relative;overflow:hidden}
   .np-art::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#3A2A5E,#B64A6A 45%,#F28B54 70%,#120A10 71%);opacity:0;transition:opacity .6s}
@@ -207,16 +207,16 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   .np-song small{font-family:var(--guer);color:var(--yellow);font-size:1em;opacity:0;transition:opacity .4s}
   .np-title{opacity:0}.np-empty{opacity:.45}
   .s1 .np-title,.s1 .np-song small{opacity:1}.s1 .np-empty{opacity:0}
-  .np-mid{display:flex;flex-direction:column;gap:.7em}
-  .np-mid .ctrls{padding:0 3em;justify-content:center;gap:2.6em}
+  .np-mid{display:flex;flex-direction:column;justify-content:center;gap:1em;padding-top:.6em}
+  .np-mid .ctrls{padding:0;justify-content:center;gap:3em}
   .np-mid .ctrls svg{width:1.4em;height:1.4em}
   .np-mid .ctrls .pp{width:2.6em;height:2.6em}
   .np-mid .track{margin:0}
   .np-mid .track i{width:.9em;height:.9em;margin-top:-.45em}
-  .np-steps{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:.6em}
+  .np-steps{justify-self:end;align-self:end;margin-bottom:1.3em}
   .np-steps .progress{position:static;gap:.4em}
   .np-steps .progress span{width:2.4em;height:.35em}
-  .np-steps small{font-family:var(--guer);font-size:1em;opacity:.8;white-space:pre}
+  .np-steps small{display:none}
   #origin{padding:18vh 7vw}
   .origin{max-width:min(1300px,80vw)}
   .origin h2{font-size:clamp(56px,6vw,150px)}
@@ -361,7 +361,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     <button type="submit">Try it Today!</button>
   </form>
   <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
-  <div class="foot">Built in public by Riley Svensson. <a href="https://instagram.com/rileysvensson.life" target="_blank" rel="noopener">Follow along</a></div>
+  <div class="foot">Built in public by Riley Svensson. <a href="https://instagram.com/rileysvensson.life" target="_blank" rel="noopener">Follow the build</a></div>
 </section>
 </main>
 
