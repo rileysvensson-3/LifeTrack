@@ -181,6 +181,9 @@ button[disabled]{opacity:.6;cursor:wait}
 input[aria-invalid="true"]{outline:3px solid var(--yellow)}
 .foot{margin-top:70px;font-size:17px}
 .foot a{color:var(--yellow)}
+.foot .me{text-decoration:none;color:inherit;transition:color .2s}
+.foot .me:hover,.foot .me:focus-visible{color:var(--yellow)}
+
 
 
 /* ---------- desktop: scale everything up, player becomes a full-width now-playing bar ---------- */
@@ -364,7 +367,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     <button type="submit">Try it Today!</button>
   </form>
   <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
-  <div class="foot">Built in public by Riley Svensson. <a href="https://www.instagram.com/life.track.app/" target="_blank" rel="noopener">Follow the build</a></div>
+  <div class="foot">Built in public by <a class="me" href="https://www.instagram.com/rileysvensson.life/" target="_blank" rel="noopener">Riley Svensson</a>. <a href="https://www.instagram.com/life.track.app/" target="_blank" rel="noopener">Follow the build</a></div>
 </section>
 </main>
 
