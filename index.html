@@ -144,9 +144,9 @@ a{color:inherit}
 
 /* ---------- origin ---------- */
 #origin{padding:140px 6vw 120px;display:flex;justify-content:center}
-.origin{max-width:760px;width:100%}
+.origin{width:fit-content;max-width:100%;margin:0 auto}
 .origin h2{font-family:var(--stella);font-weight:400;font-size:clamp(48px,7vw,84px);line-height:1;margin-bottom:34px}
-.origin p{font-size:clamp(20px,2.2vw,25px);margin:0 0 24px 8%;max-width:36ch}
+.origin p{font-size:clamp(20px,2.2vw,25px);margin:0 0 24px;max-width:46ch}
 .origin p:last-child{color:var(--yellow)}
 .origin p{opacity:.15;transition:opacity .8s}
 .origin p.seen{opacity:1}
@@ -269,8 +269,9 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   .np-steps small{display:none}
   #origin{padding:18vh 7vw}
   .origin{max-width:min(1300px,80vw)}
+  .origin p{margin-left:0}
   .origin h2{font-size:clamp(56px,6vw,150px)}
-  .origin p{font-size:clamp(21px,2vw,42px);max-width:38ch}
+  .origin p{font-size:clamp(21px,2vw,42px);max-width:48ch}
   #library h2{font-size:clamp(56px,6vw,150px)}
   #library p{font-size:clamp(19px,1.5vw,32px);max-width:42ch}
   #library{padding-bottom:16vh}
@@ -619,7 +620,9 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   function size(){
     const fr = fan.getBoundingClientRect();
     deckTop = Math.min(...[...fan.querySelectorAll('.mini')].map(m => m.getBoundingClientRect().top)) - fr.top;
-    baseMargin = parseFloat(getComputedStyle(fan).marginTop) || 0;
+    const curMargin = parseFloat(getComputedStyle(fan).marginTop) || 0;
+    if (!fan.classList.contains('lift')) baseMargin = curMargin;   // only trust the resting margin; when lifted it already includes --lift
+    const liftExtra = fan.classList.contains('lift') ? curMargin - baseMargin : 0;
     const clone = heroCard.cloneNode(true);
     clone.innerHTML = uniq(clone.innerHTML, 'b');
     clone.style.setProperty('--cc', PICK_COLOR);
@@ -629,7 +632,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     W = Math.min(heroCard.offsetWidth * .8, innerWidth * .68);
     H = measure(W);
     const deckH = fan.offsetHeight - deckTop;
-    textAbove = fr.top - lib.querySelector('h2').getBoundingClientRect().top;
+    textAbove = fr.top - lib.querySelector('h2').getBoundingClientRect().top - liftExtra;
     const maxH = Math.max(200, innerHeight - bar.offsetHeight - 12 - textAbove - TOP - BOT - deckH * .45);
     if (H > maxH){ W = W * maxH / H; H = measure(W); }
     Object.assign(pop.style, {width: W + 'px', height: H + 'px', marginLeft: -W / 2 + 'px', top: (deckTop - BOT - H) + 'px'});
@@ -731,7 +734,8 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   pop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pop.click(); } });
   lib.addEventListener('click', closeCard);
   addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
-  addEventListener('resize', () => { syncRatio(); if (isOpen && !busy){ pop.style.transition = 'none'; size(); pop.offsetWidth; pop.style.transition = ''; } placeTap1(); });
+  let lastW = innerWidth;
+  addEventListener('resize', () => { syncRatio(); const wChanged = innerWidth !== lastW; lastW = innerWidth; if (isOpen && !busy && wChanged){ pop.style.transition = 'none'; size(); pop.offsetWidth; pop.style.transition = ''; } placeTap1(); });
   const minis = [...fan.querySelectorAll('.mini')], BASE = SONGS.map(x => x[2].toUpperCase());
   function recolor(cc){
     cc = cc.toUpperCase(); PICK_COLOR = cc;
