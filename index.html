@@ -510,7 +510,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(splitLines, 150); });
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(splitLines);
   // player: real 30-second preview from Apple's free iTunes Search API, play/pause on both controls
-  const audio = new Audio(); audio.preload = 'auto';
+  const audio = new Audio(); audio.preload = 'auto'; audio.volume = 0.7;
   const dots = [...document.querySelectorAll('.track')], pps = [...document.querySelectorAll('.pp')];
   let playing = false, fakeT = 0, fakeStart = 0, raf = 0;
   const setProg = p => dots.forEach(d => d.style.setProperty('--prog', Math.min(Math.max(p, 0), 1)));
