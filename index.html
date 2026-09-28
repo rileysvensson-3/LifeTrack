@@ -194,6 +194,17 @@ a{color:inherit}
 .pop.tease .flip{animation:tease 1s cubic-bezier(.4,1.4,.5,1)}
 @keyframes blink{50%{opacity:0}}
 @keyframes bob{50%{transform:translateY(.3em)}}
+/* sound waves behind the popped card + its little play button */
+.waves{position:absolute;left:50%;width:100vw;margin-left:-50vw;z-index:4;pointer-events:none;opacity:0;transition:opacity .7s}
+.waves.on{opacity:1}
+#library .lpp{position:absolute;z-index:6;width:clamp(40px,3.2vw,54px);height:clamp(40px,3.2vw,54px);padding:0;border-radius:50%;
+  border:2px solid var(--yellow);background:var(--black);display:grid;place-items:center;opacity:0;pointer-events:none;
+  transform:scale(.6);transition:opacity .4s,transform .4s cubic-bezier(.3,1.6,.5,1)}
+#library .lpp.on{opacity:1;pointer-events:auto;transform:none}
+#library .lpp:hover{transform:scale(1.08)}
+#library .lpp:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.lpp svg{width:42%;height:42%;fill:var(--yellow)}
+.lpp .ps{display:none}.playing .lpp .ps{display:block}.playing .lpp .pl{display:none}
 .fan.open .mini{transform:rotate(var(--r))}
 .fan.open .mini:hover{transform:rotate(var(--r)) translateY(-14%)}
 
@@ -516,8 +527,8 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     if (p >= 1) return stop(true);
     raf = requestAnimationFrame(tick);
   }
-  function play(){
-    if (!document.body.classList.contains('s1')) return;
+  function play(force){
+    if (!force && !document.body.classList.contains('s1')) return;
     playing = true; document.body.classList.add('playing'); fakeStart = performance.now();
     if (audio.src) audio.play().catch(() => {});
     cancelAnimationFrame(raf); tick();
@@ -582,6 +593,13 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     + '<div class="flip"><div class="face front cover" style="--mc:' + PICK_COLOR + '"><div class="in"><div class="t">Strawberry Skies</div><div class="ph">' + uniq(SCENES.roof) + '</div><div class="a">Kid Travis</div></div></div>'
     + '<div class="face back s1 s2 s3 s4 s5"></div></div>';
   fan.appendChild(pop);
+  const waves = document.createElement('canvas'); waves.className = 'waves'; waves.setAttribute('aria-hidden', 'true');
+  fan.insertBefore(waves, pop);
+  const lpp = document.createElement('button'); lpp.type = 'button'; lpp.className = 'lpp';
+  lpp.setAttribute('aria-label', 'Play or pause Strawberry Skies');
+  lpp.innerHTML = '<svg class="pl" viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5z"/></svg><svg class="ps" viewBox="0 0 24 24"><rect x="5.5" y="4.5" width="4.5" height="15" rx="1"/><rect x="14" y="4.5" width="4.5" height="15" rx="1"/></svg>';
+  fan.appendChild(lpp);
+  lpp.addEventListener('click', e => { e.stopPropagation(); playing ? stop() : play(true); wake(); });
   const tap2 = {classList:{add(){},remove(){}}}, back = pop.querySelector('.back');
 
   function type(el, text){
@@ -617,6 +635,11 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     Object.assign(pop.style, {width: W + 'px', height: H + 'px', marginLeft: -W / 2 + 'px', top: (deckTop - BOT - H) + 'px'});
     pop.querySelector('.front').style.setProperty('--w', W + 'px');
     fan.style.setProperty('--lift', Math.max(baseMargin, baseMargin + TOP + H + BOT - deckTop) + 'px');
+    const cy = deckTop - BOT - H / 2, ch = H * 1.15, dpr = Math.min(devicePixelRatio || 1, 2);
+    waves.style.top = (cy - ch / 2) + 'px'; waves.style.height = ch + 'px';
+    waves.width = innerWidth * dpr; waves.height = ch * dpr;
+    const b = lpp.offsetWidth || 44, gap = Math.max(10, Math.min(22, innerWidth * .015));
+    Object.assign(lpp.style, {left: (fan.clientWidth / 2 + W / 2 + gap) + 'px', top: (cy - b / 2) + 'px'});
   }
   // keep the deck steady on screen while the text above gets pushed up
   function pin(dur, T){
@@ -630,13 +653,13 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   }
   function openCard(){
     if (isOpen || busy || !fan.classList.contains('open')) return;
-    isOpen = busy = true; size();
+    isOpen = busy = true; autoPlayed = false; size();
     const fr = fan.getBoundingClientRect(), mr = pick.getBoundingClientRect();
     const dx = mr.left + mr.width / 2 - fr.left - fan.clientWidth / 2;
     const dy = mr.top + mr.height / 2 - fr.top - (deckTop - BOT - H / 2);
     start = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + getComputedStyle(pick).getPropertyValue('--r') + ') scale(' + pick.offsetWidth / W + ')';
     pop.style.transition = 'none'; pop.style.transform = start; pop.classList.add('show');
-    pick.style.visibility = 'hidden'; tap1.classList.remove('on');
+    pick.style.visibility = 'hidden'; tap1.classList.remove('on'); wake();
     const lift = parseFloat(fan.style.getPropertyValue('--lift'));
     const lo = bar.offsetHeight + 12 + textAbove + (lift - baseMargin), hi = innerHeight - deckTop - (fan.offsetHeight - deckTop) * .6;
     const T = Math.max(lo, Math.min(fr.top, hi));
@@ -651,15 +674,57 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   function closeCard(){
     if (!isOpen || busy) return;
     busy = true; pop.classList.remove('flipped'); tap2.classList.remove('on');
+    lpp.classList.remove('on'); if (playing) stop();
     pop.style.transform = start; fan.classList.remove('lift'); pin(800);
     setTimeout(() => {
       pop.classList.remove('show'); pick.style.visibility = ''; isOpen = busy = false;
-      tap1.classList.add('on'); pick.focus({preventScroll: true});
+      placeTap1(); tap1.classList.add('on'); pick.focus({preventScroll: true});
     }, 820);
   }
   pick.addEventListener('click', e => { e.stopPropagation(); openCard(); });
   pick.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openCard(); } });
-  pop.addEventListener('click', e => { e.stopPropagation(); if (!busy){ pop.classList.remove('tease'); pop.classList.toggle('flipped'); } });
+  let autoPlayed = false;
+  pop.addEventListener('click', e => {
+    e.stopPropagation(); if (busy) return;
+    pop.classList.remove('tease'); pop.classList.toggle('flipped');
+    if (pop.classList.contains('flipped') && !autoPlayed){
+      autoPlayed = true; if (!playing) play(true);
+      setTimeout(() => lpp.classList.add('on'), 450); wake();
+    }
+  });
+
+  // sound waves: not a real analyser, just a beat + voice-ish envelope so it moves with the music
+  const ctx = waves.getContext('2d'), still = matchMedia('(prefers-reduced-motion: reduce)');
+  let amp = 0, wraf = 0, t0 = performance.now();
+  function envelope(t){
+    const beat = 60 / 92, k = Math.exp(-((t % beat) / beat) * 5);
+    const syl = Math.max(0, Math.sin(t * 6.1) + .6 * Math.sin(t * 9.7 + 1) + .3 * Math.sin(t * 13.3 + 2)) / 1.9;
+    const phrase = .55 + .45 * Math.sin(t * .9) * Math.sin(t * .37 + 1);
+    return .22 + .38 * k + .5 * syl * phrase;
+  }
+  function draw(){
+    const t = (performance.now() - t0) / 1000, on = isOpen && playing && !still.matches;
+    amp += ((on ? envelope(t) : 0) - amp) * (on ? .18 : .06);
+    waves.classList.toggle('on', isOpen && amp > .02);
+    const w = waves.width, h = waves.height, cy = h / 2, dpr = w / innerWidth;
+    ctx.clearRect(0, 0, w, h);
+    const lines = [
+      [PICK_COLOR, 3.2, .9, 0.011, 2.4, 0],
+      ['#FDF9B4', 2, .65, 0.017, -3.1, 1.7],
+      ['rgba(255,255,255,.35)', 1.4, .45, 0.023, 4.2, 3.1]
+    ];
+    lines.forEach(([c, lw, a, k, sp, ph]) => {
+      ctx.beginPath(); ctx.strokeStyle = c; ctx.lineWidth = lw * dpr; ctx.lineJoin = 'round';
+      for (let x = 0; x <= w; x += 4 * dpr){
+        const u = x / w, taper = Math.pow(Math.sin(Math.PI * u), .7), X = x / dpr;
+        const y = cy + amp * a * h * .42 * taper * (.72 * Math.sin(X * k + t * sp + ph) + .28 * Math.sin(X * k * 2.7 - t * sp * 1.6));
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    });
+    wraf = (isOpen || amp > .01) ? requestAnimationFrame(draw) : 0;
+  }
+  function wake(){ if (!wraf) wraf = requestAnimationFrame(draw); }
   pop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pop.click(); } });
   lib.addEventListener('click', closeCard);
   addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
@@ -671,6 +736,9 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     pop.querySelector('.front').style.setProperty('--mc', cc);
   }
   recolor(PICK_COLOR); onColor = recolor;
+  // keep "click me" glued to the card whenever the deck's size or the card's position changes
+  new ResizeObserver(placeTap1).observe(fan);
+  pick.addEventListener('transitionend', placeTap1);
   // show the hint once the deck has fanned out
   new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting){
     setTimeout(() => { placeTap1(); tap1.classList.add('on'); type(tap1, 'click me'); }, 1300); o.disconnect(); } }), {threshold:.35}).observe(fan);
