@@ -695,7 +695,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
 
   // sound waves: not a real analyser, just a beat + voice-ish envelope so it moves with the music
   const ctx = waves.getContext('2d'), still = matchMedia('(prefers-reduced-motion: reduce)');
-  let amp = 0, wraf = 0, t0 = performance.now();
+  let amp = 0, kick = 0, wraf = 0, t0 = performance.now();
   function envelope(t){
     const beat = 60 / 92, k = Math.exp(-((t % beat) / beat) * 5);
     const syl = Math.max(0, Math.sin(t * 6.1) + .6 * Math.sin(t * 9.7 + 1) + .3 * Math.sin(t * 13.3 + 2)) / 1.9;
@@ -705,6 +705,9 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   function draw(){
     const t = (performance.now() - t0) / 1000, on = isOpen && playing && !still.matches;
     amp += ((on ? envelope(t) : 0) - amp) * (on ? .18 : .06);
+    // tiny swell: the card grows a hair on each beat, no tilt
+    kick += ((on ? Math.exp(-((t % (60 / 92)) / (60 / 92)) * 5) : 0) - kick) * .35;
+    pop.style.scale = kick > .002 ? (1 + kick * .022).toFixed(4) : '';
     waves.classList.toggle('on', isOpen && amp > .02);
     const w = waves.width, h = waves.height, cy = h / 2, dpr = w / innerWidth;
     ctx.clearRect(0, 0, w, h);
@@ -722,7 +725,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
       }
       ctx.stroke();
     });
-    wraf = (isOpen || amp > .01) ? requestAnimationFrame(draw) : 0;
+    wraf = (isOpen || amp > .01 || kick > .002) ? requestAnimationFrame(draw) : 0;
   }
   function wake(){ if (!wraf) wraf = requestAnimationFrame(draw); }
   pop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pop.click(); } });
