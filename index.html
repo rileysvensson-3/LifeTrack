@@ -206,7 +206,7 @@ a{color:inherit}
 .lpp svg{width:42%;height:42%;fill:var(--yellow)}
 .lpp .ps{display:none}.playing .lpp .ps{display:block}.playing .lpp .pl{display:none}
 .fan.open .mini{transform:rotate(var(--r))}
-.fan.open .mini:hover{transform:rotate(var(--r)) translateY(-14%)}
+@media (hover:hover){.fan.open .mini:hover{transform:rotate(var(--r)) translateY(-14%)}}
 
 /* ---------- waitlist ---------- */
 #join{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
@@ -738,7 +738,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   recolor(PICK_COLOR); onColor = recolor;
   // keep "click me" glued to the card whenever the deck's size or the card's position changes
   new ResizeObserver(placeTap1).observe(fan);
-  pick.addEventListener('transitionend', placeTap1);
+
   // show the hint once the deck has fanned out
   new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting){
     setTimeout(() => { placeTap1(); tap1.classList.add('on'); type(tap1, 'click me'); }, 1300); o.disconnect(); } }), {threshold:.35}).observe(fan);
