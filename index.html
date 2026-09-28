@@ -150,18 +150,20 @@ a{color:inherit}
 .origin p.seen{opacity:1}
 
 /* ---------- library ---------- */
-#library{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:100px 6vw 60px;background:var(--black);overflow:hidden}
+#library{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:clamp(100px,14vh,160px) 6vw 60px;background:var(--black);overflow:hidden}
 #library h2{font-family:var(--stella);font-weight:400;font-size:clamp(48px,7vw,88px);line-height:1;text-align:center}
 #library p{text-align:center;max-width:38ch;margin:16px auto 0}
 .fan{position:relative;width:100%;max-width:900px;height:min(56vw,400px);margin-top:10px}
 .fan{transition:margin-top .8s cubic-bezier(.2,.9,.3,1)}
 .fan.lift{margin-top:var(--lift)!important}
-.mini{--w:clamp(96px,15vw,165px);position:absolute;left:50%;bottom:0;width:var(--w);height:calc(var(--w) * var(--ar,1.36));margin-left:calc(var(--w) / -2);
+#library .fan{height:calc(var(--w) * var(--ar,1.36) + 3.2em);margin-top:clamp(20px,4vh,44px)}
+.fan{--w:clamp(96px,15vw,165px)}
+.mini{position:absolute;left:50%;bottom:0;width:var(--w);height:calc(var(--w) * var(--ar,1.36));margin-left:calc(var(--w) / -2);
   transform-origin:50% 190%;transition:transform 1s cubic-bezier(.2,.9,.3,1.1)}
 .mini.pick{cursor:pointer;z-index:3}
 /* cover look shared by the deck and the popped card; everything scales off --w so proportions never change */
-.cover{background:var(--mc);border:2px solid var(--black);padding:calc(var(--w) * .045);display:flex}
+.cover{background:var(--mc);border:2px solid var(--black);padding:calc(var(--w) * .045);display:flex;box-shadow:calc(var(--w) * .032) calc(var(--w) * .038) 0 var(--black)}
 .cover .in{flex:1;min-height:0;background:var(--black);display:flex;flex-direction:column;gap:calc(var(--w) * .03);padding:calc(var(--w) * .035) calc(var(--w) * .035) calc(var(--w) * .045)}
 .cover .ph{flex:1;min-height:0;overflow:hidden;background:#141414}.cover .ph svg{display:block;width:100%;height:100%}
 .cover .t,.cover .a{font-family:var(--guer);font-size:calc(var(--w) * .075);text-align:center;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -260,7 +262,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   #library p{font-size:clamp(19px,1.5vw,32px);max-width:42ch}
   #library{padding-bottom:16vh}
   .fan{max-width:min(1400px,90vw);height:min(24vw,40vh);margin-top:2vh}
-  .mini{--w:clamp(110px,min(10vw,17vh),250px)}
+  .fan{--w:clamp(110px,min(10vw,17vh),250px)}
   #join h2{font-size:clamp(60px,7vw,190px)}
   #join p{font-size:clamp(21px,1.6vw,36px)}
   input,button{font-size:clamp(18px,1.3vw,28px)}
@@ -526,16 +528,16 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
 
   const tap1 = document.createElement('div');
   tap1.className = 'tap'; tap1.setAttribute('aria-hidden', 'true');
-  tap1.innerHTML = '<span><span class="tw"></span><i class="cur"></i></span>' + ARROW_DOWN;
+  tap1.innerHTML = '<span><span class="tw"></span></span>' + ARROW_DOWN;
   fan.appendChild(tap1);
 
   const pop = document.createElement('div');
   pop.className = 'pop'; pop.tabIndex = -1; pop.setAttribute('role', 'button'); pop.setAttribute('aria-label', 'Flip the card');
-  pop.innerHTML = '<div class="spin" aria-hidden="true"><svg viewBox="0 0 32 32"><ellipse cx="16" cy="16" rx="12" ry="5.5" stroke-dasharray="58 18" transform="rotate(-12 16 16)"/><path d="M22.5 7.5l4.8 3.2-5.3 2"/><path d="M16 4v24" stroke-width="1.6" opacity=".55"/></svg></div>'
+  pop.innerHTML = ''
     + '<div class="flip"><div class="face front cover" style="--mc:' + PICK_COLOR + '"><div class="in"><div class="t">Strawberry Skies</div><div class="ph">' + uniq(SCENES.roof) + '</div><div class="a">Kid Travis</div></div></div>'
     + '<div class="face back s1 s2 s3 s4 s5"></div></div>';
   fan.appendChild(pop);
-  const tap2 = pop.querySelector('.spin'), back = pop.querySelector('.back');
+  const tap2 = {classList:{add(){},remove(){}}}, back = pop.querySelector('.back');
 
   function type(el, text){
     const tw = el.querySelector('.tw'); clearInterval(el._t); tw.textContent = ''; let i = 0;
