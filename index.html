@@ -83,6 +83,7 @@ a{color:inherit}
     radial-gradient(circle at 50% 70%, #FFF1C2 0 6%, #FFC27A 6.5% 10%, transparent 10.5%),
     linear-gradient(180deg,#3A2A5E 0%,#B64A6A 38%,#F28B54 62%,#2A1A22 62.5%,#120A10 100%);
   filter:blur(20px) grayscale(1) brightness(.4);transform:scale(1.2);opacity:0;transition:filter 1.5s, transform 1.5s, opacity .6s}
+.photo .scene.svgscene{background:none}.photo .scene svg{display:block;width:100%;height:100%}.photo .scene.svgscene ~ .roof{display:none}
 .photo .roof{position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(170deg,transparent 0 30%,#0c0608 30.5%);opacity:0;transition:opacity 1s .5s}
 .photo .plus{position:absolute;inset:0;display:grid;place-items:center;transition:opacity .3s}
 .photo .plus::before,.photo .plus::after{content:"";position:absolute;background:var(--white);border-radius:.4em}
@@ -127,8 +128,9 @@ a{color:inherit}
 /* step states (cumulative) */
 .s1 .v-song{clip-path:inset(0)}
 .s1 .v-artist{clip-path:inset(0);transition-delay:.3s}
-.s1 .track i{animation:play 24s linear infinite}
-.s1 .pause{display:block}.s1 .playi{display:none}
+.track i{left:calc((100% - 1.05em) * var(--prog,0))}
+.playing .pause{display:block}.playing .playi{display:none}
+.pp{cursor:pointer;-webkit-tap-highlight-color:transparent}
 @keyframes play{from{left:0}to{left:calc(100% - 1.05em)}}
 .s2 .photo .scene{opacity:1;filter:none;transform:none}
 .s2 .photo .roof{opacity:1}
@@ -415,7 +417,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   COLORS.forEach(c => { const s = document.createElement('span'); s.style.background = c; sw.appendChild(s); });
   const sws = [...sw.children];
   const STEPS = 7;
-  let last = -1, lastC = -1;
+  let last = -1, lastC = -1, onColor = null;
   setTimeout(() => caps[0].classList.add('typed'), 450);
 
   function update(){
@@ -433,6 +435,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     if (ci !== lastC){
       lastC = ci;
       card.style.setProperty('--cc', COLORS[ci]);
+      if (onColor) onColor(COLORS[ci]);
       sws.forEach((s, i) => s.classList.toggle('on', step === 6 && i === ci));
     }
   }
@@ -494,6 +497,45 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   }
   let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(splitLines, 150); });
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(splitLines);
+  // player: real 30-second preview from Apple's free iTunes Search API, play/pause on both controls
+  const audio = new Audio(); audio.preload = 'auto';
+  const dots = [...document.querySelectorAll('.track')], pps = [...document.querySelectorAll('.pp')];
+  let playing = false, fakeT = 0, fakeStart = 0, raf = 0;
+  const setProg = p => dots.forEach(d => d.style.setProperty('--prog', Math.min(Math.max(p, 0), 1)));
+  window.__ltPreview = data => {
+    const hit = (data.results || []).find(r => /kid travis/i.test(r.artistName) && /strawberry/i.test(r.trackName) && r.previewUrl);
+    if (hit) audio.src = hit.previewUrl;
+  };
+  const js = document.createElement('script');
+  js.src = 'https://itunes.apple.com/search?term=strawberry+skies+kid+travis&entity=song&limit=10&callback=__ltPreview';
+  document.head.appendChild(js);
+  function tick(){
+    if (!playing) return;
+    const p = audio.src && audio.duration ? audio.currentTime / audio.duration : (fakeT + (performance.now() - fakeStart) / 1000) / 30;
+    setProg(p);
+    if (p >= 1) return stop(true);
+    raf = requestAnimationFrame(tick);
+  }
+  function play(){
+    if (!document.body.classList.contains('s1')) return;
+    playing = true; document.body.classList.add('playing'); fakeStart = performance.now();
+    if (audio.src) audio.play().catch(() => {});
+    cancelAnimationFrame(raf); tick();
+  }
+  function stop(reset){
+    if (playing && !audio.src) fakeT += (performance.now() - fakeStart) / 1000;
+    playing = false; document.body.classList.remove('playing'); audio.pause(); cancelAnimationFrame(raf);
+    if (reset){ fakeT = 0; audio.currentTime = 0; setProg(0); }
+  }
+  pps.forEach(b => {
+    b.setAttribute('role', 'button'); b.tabIndex = 0; b.setAttribute('aria-label', 'Play or pause the 30-second preview');
+    b.addEventListener('click', () => playing ? stop() : play());
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); b.click(); } });
+  });
+  audio.addEventListener('ended', () => stop(true));
+  // no song on the card yet (scrolled back to the start) = nothing playing
+  addEventListener('scroll', () => { if (playing && !document.body.classList.contains('s1')) stop(true); }, {passive:true});
+
   // library fan, built from your song list
   // cover-style cards: silhouette scene + title, bordered in the card colors (minus olive)
   const SCENES = {"beach": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a1\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3A2A5E\"/><stop offset=\"0.45\" stop-color=\"#C24E6E\"/><stop offset=\"0.7\" stop-color=\"#F6A15A\"/></linearGradient><radialGradient id=\"g1\"><stop offset=\"0\" stop-color=\"#FFD58A\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#FFD58A\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a1)\"/><circle cx=\"55\" cy=\"80\" r=\"22\" fill=\"url(#g1)\"/><circle cx=\"55\" cy=\"80\" r=\"9\" fill=\"#FFE3A3\"/><rect y=\"80\" width=\"90\" height=\"40\" fill=\"#1a1020\"/><path d=\"M42 82h26M46 87h18M50 92h10\" stroke=\"#F6A15A\" stroke-width=\"1.2\" opacity=\".7\"/><path d=\"M0 104q30-6 90 0v16H0z\" fill=\"#0c0608\"/><g fill=\"#0c0608\"><path d=\"M18 106q-2-25 5-46l1.5.5q-5 22-3.5 45.5z\"/><path d=\"M23.5 60q-10-4-18 2q9-2 17 0q-8 4-11 12q6-8 12-11q1 9 7 13q-3-8-5-13q10 1 16 7q-5-9-17-10q9-3 17-1q-9-5-18 1z\"/><path d=\"M76 106q1-18-4-32l1.2-.4q5 14 4.3 32.4z\"/><path d=\"M72.6 74q-7-3-13 1q7-1 12 0q-6 3-8 9q5-6 9-8q1 6 5 9q-2-6-4-9q7 1 11 5q-3-6-12-7q6-2 12-1q-6-4-12 1z\"/></g></svg>", "road": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a2\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#2B3A67\"/><stop offset=\"0.5\" stop-color=\"#E08A6B\"/><stop offset=\"0.72\" stop-color=\"#F7C77E\"/></linearGradient><radialGradient id=\"g2\"><stop offset=\"0\" stop-color=\"#FFE0A0\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#FFE0A0\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a2)\"/><circle cx=\"30\" cy=\"78\" r=\"20\" fill=\"url(#g2)\"/><circle cx=\"30\" cy=\"80\" r=\"7\" fill=\"#FFEBB8\"/><path d=\"M0 80q45-6 90 0v40H0z\" fill=\"#0c0608\"/><path d=\"M43 80h4l30 40H13z\" fill=\"#3a2418\"/><path d=\"M45 84v4M45 94v6M45 106v9\" stroke=\"#8a5a3a\" stroke-width=\"1\"/><g stroke=\"#0c0608\" stroke-width=\"1.4\"><path d=\"M62 80v-6M70 82v-8M79 84v-10M88 86v-12M60 76l30 3\"/></g><g fill=\"#0c0608\"><rect x=\"11\" y=\"68\" width=\"2.4\" height=\"12\"/><circle cx=\"8\" cy=\"66\" r=\"5\"/><circle cx=\"16\" cy=\"65\" r=\"5.5\"/><circle cx=\"12\" cy=\"60\" r=\"5.5\"/><circle cx=\"19\" cy=\"70\" r=\"3.5\"/><circle cx=\"5\" cy=\"71\" r=\"3.5\"/></g></svg>", "river": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a3\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#0E1A3A\"/><stop offset=\"0.6\" stop-color=\"#2F5E7A\"/><stop offset=\"0.75\" stop-color=\"#6FA3A8\"/></linearGradient><radialGradient id=\"g3\"><stop offset=\"0\" stop-color=\"#EAF6FF\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#EAF6FF\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a3)\"/><circle cx=\"10\" cy=\"12\" r=\"0.6\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"25\" cy=\"24\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"70\" cy=\"10\" r=\"0.6\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"82\" cy=\"30\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"40\" cy=\"8\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"64\" cy=\"26\" r=\"14\" fill=\"url(#g3)\"/><circle cx=\"64\" cy=\"26\" r=\"6\" fill=\"#F4F8FF\"/><path d=\"M0 70l18-22 14 14 16-20 20 24 22-14v38H0z\" fill=\"#1c3242\"/><path d=\"M0 80l24-12 20 10 22-14 24 16v40H0z\" fill=\"#101c24\"/><path d=\"M0 90q45-6 90 0v30H0z\" fill=\"#0c0608\"/><path d=\"M34 90q12-2 22 0l14 30H18z\" fill=\"#4c7c8a\" opacity=\".8\"/><path d=\"M40 96h10M36 104h16M32 112h22\" stroke=\"#EAF6FF\" stroke-width=\".8\" opacity=\".6\"/><path d=\"M58 98h24v3H58zM62 101v8M78 101v8\" stroke=\"#0c0608\" fill=\"#0c0608\"/></svg>", "city": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a4\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#140F33\"/><stop offset=\"0.5\" stop-color=\"#5B2A6E\"/><stop offset=\"0.8\" stop-color=\"#D2557A\"/></linearGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a4)\"/><circle cx=\"12\" cy=\"14\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"30\" cy=\"8\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"58\" cy=\"18\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"80\" cy=\"10\" r=\"0.6\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"72\" cy=\"30\" r=\"5\" fill=\"#FFE9C2\" opacity=\".9\"/><path d=\"M0 120V74h6v-6h8v10h6V64h14v-8h4v8h4v48l2-52h12v14h6v-6h10v12h8v48z\" fill=\"#0c0608\"/><rect x=\"8\" y=\"78\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"12\" y=\"84\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"8\" y=\"90\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"26\" y=\"70\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"30\" y=\"76\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"26\" y=\"88\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"44\" y=\"66\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"48\" y=\"72\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"44\" y=\"80\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"48\" y=\"94\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"62\" y=\"74\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"66\" y=\"82\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"62\" y=\"90\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"78\" y=\"80\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"82\" y=\"88\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><rect x=\"78\" y=\"96\" width=\"1.6\" height=\"2\" fill=\"#FFD27A\" opacity=\".9\"/><path d=\"M0 108h90v12H0z\" fill=\"#050305\"/><path d=\"M4 108v-5h1v5M20 108v-5h1v5\" stroke=\"#0c0608\"/></svg>", "roof": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a5\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#3A2A5E\"/><stop offset=\"0.38\" stop-color=\"#B64A6A\"/><stop offset=\"0.62\" stop-color=\"#F28B54\"/></linearGradient><radialGradient id=\"g5\"><stop offset=\"0\" stop-color=\"#FFC27A\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#FFC27A\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a5)\"/><circle cx=\"45\" cy=\"74\" r=\"24\" fill=\"url(#g5)\"/><circle cx=\"45\" cy=\"76\" r=\"9\" fill=\"#FFF1C2\"/><path d=\"M0 76h90v10H0z\" fill=\"#2A1A22\"/><g fill=\"#0c0608\"><path d=\"M0 92l90-8v36H0z\"/><g transform=\"translate(22 90) scale(1)\"><circle cx=\"0\" cy=\"-9\" r=\"2.6\"/><path d=\"M-3.5 -6h7l1 7h-9z\"/></g><g transform=\"translate(34 89) scale(1)\"><circle cx=\"0\" cy=\"-9\" r=\"2.6\"/><path d=\"M-3.5 -6h7l1 7h-9z\"/></g><g transform=\"translate(52 87) scale(1)\"><circle cx=\"0\" cy=\"-9\" r=\"2.6\"/><path d=\"M-3.5 -6h7l1 7h-9z\"/></g><g transform=\"translate(64 86) scale(1)\"><circle cx=\"0\" cy=\"-9\" r=\"2.6\"/><path d=\"M-3.5 -6h7l1 7h-9z\"/></g></g></svg>", "camp": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a6\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#070B1E\"/><stop offset=\"0.7\" stop-color=\"#1B2748\"/><stop offset=\"1\" stop-color=\"#2C3A5E\"/></linearGradient><radialGradient id=\"g6\"><stop offset=\"0\" stop-color=\"#FF9A3D\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#FF9A3D\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a6)\"/><circle cx=\"8\" cy=\"10\" r=\"0.6\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"18\" cy=\"26\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"32\" cy=\"14\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"46\" cy=\"6\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"60\" cy=\"20\" r=\"0.6\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"74\" cy=\"8\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"84\" cy=\"24\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"52\" cy=\"34\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"12\" cy=\"40\" r=\"0.4\" fill=\"#fff\" opacity=\".8\"/><circle cx=\"78\" cy=\"42\" r=\"0.5\" fill=\"#fff\" opacity=\".8\"/><g fill=\"#0c0608\"><path transform=\"translate(8 96) scale(1.4)\" d=\"M0-24l6 9h-3l6 8h-4l6 8H-11l6-8h-4l6-8h-3z\"/><path transform=\"translate(20 92) scale(1)\" d=\"M0-24l6 9h-3l6 8h-4l6 8H-11l6-8h-4l6-8h-3z\"/><path transform=\"translate(78 94) scale(1.5)\" d=\"M0-24l6 9h-3l6 8h-4l6 8H-11l6-8h-4l6-8h-3z\"/><path transform=\"translate(88 98) scale(1.1)\" d=\"M0-24l6 9h-3l6 8h-4l6 8H-11l6-8h-4l6-8h-3z\"/><path d=\"M0 94q45-4 90 0v26H0z\"/></g><circle cx=\"58\" cy=\"102\" r=\"14\" fill=\"url(#g6)\"/><path d=\"M55 104l3-8 3 8z\" fill=\"#FFB14D\"/><path d=\"M56.5 104l1.5-4 1.5 4z\" fill=\"#FFE3A0\"/><path d=\"M24 104l12-18 12 18z\" fill=\"#1a1216\"/><path d=\"M34 104l2-6 2 6z\" fill=\"#FF9A3D\" opacity=\".5\"/><path d=\"M52 105h12\" stroke=\"#0c0608\" stroke-width=\"1.2\"/></svg>", "concert": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a7\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#0B0716\"/><stop offset=\"0.6\" stop-color=\"#2A1244\"/><stop offset=\"1\" stop-color=\"#4A1A5E\"/></linearGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a7)\"/><g opacity=\".55\"><path d=\"M45 40L8 110h14z\" fill=\"#43E0D6\"/><path d=\"M45 40L68 110h14z\" fill=\"#FF5FA2\"/><path d=\"M45 40l-6 70h12z\" fill=\"#FFE27A\"/></g><rect x=\"30\" y=\"36\" width=\"30\" height=\"6\" fill=\"#1a1024\"/><circle cx=\"36\" cy=\"42\" r=\"1.5\" fill=\"#fff\"/><circle cx=\"45\" cy=\"42\" r=\"1.5\" fill=\"#fff\"/><circle cx=\"54\" cy=\"42\" r=\"1.5\" fill=\"#fff\"/><g fill=\"#0c0608\"><circle cx=\"4\" cy=\"100\" r=\"3.2\"/><circle cx=\"12\" cy=\"98\" r=\"3.2\"/><circle cx=\"20\" cy=\"101\" r=\"3.2\"/><circle cx=\"28\" cy=\"97\" r=\"3.2\"/><circle cx=\"36\" cy=\"100\" r=\"3.2\"/><circle cx=\"44\" cy=\"98\" r=\"3.2\"/><circle cx=\"52\" cy=\"101\" r=\"3.2\"/><circle cx=\"60\" cy=\"97\" r=\"3.2\"/><circle cx=\"68\" cy=\"100\" r=\"3.2\"/><circle cx=\"76\" cy=\"98\" r=\"3.2\"/><circle cx=\"84\" cy=\"101\" r=\"3.2\"/><path d=\"M0 100h90v20H0z\"/><path d=\"M14 98l-3-14 2-.4 3 14zM40 97l2-15 2 .3-2 15zM70 98l4-13 2 .6-4 13z\"/></g></svg>", "train": "<svg viewBox=\"0 0 90 120\" preserveAspectRatio=\"xMidYMid slice\"><defs><linearGradient id=\"a8\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1E2450\"/><stop offset=\"0.5\" stop-color=\"#6B4A8A\"/><stop offset=\"0.8\" stop-color=\"#E88A6A\"/></linearGradient><radialGradient id=\"g8\"><stop offset=\"0\" stop-color=\"#FFD0A0\" stop-opacity=\".9\"/><stop offset=\"1\" stop-color=\"#FFD0A0\" stop-opacity=\"0\"/></radialGradient></defs><rect width=\"90\" height=\"120\" fill=\"url(#a8)\"/><circle cx=\"24\" cy=\"44\" r=\"16\" fill=\"url(#g8)\"/><circle cx=\"24\" cy=\"44\" r=\"6\" fill=\"#FFE6C8\"/><path d=\"M0 84l20-24 16 14 20-26 34 30v42H0z\" fill=\"#2a2240\"/><path d=\"M0 92h90v4H0z\" fill=\"#0c0608\"/><path d=\"M2 120V96q7-8 14 0v24\" fill=\"none\" stroke=\"#0c0608\" stroke-width=\"3\"/><path d=\"M20 120V96q7-8 14 0v24\" fill=\"none\" stroke=\"#0c0608\" stroke-width=\"3\"/><path d=\"M38 120V96q7-8 14 0v24\" fill=\"none\" stroke=\"#0c0608\" stroke-width=\"3\"/><path d=\"M56 120V96q7-8 14 0v24\" fill=\"none\" stroke=\"#0c0608\" stroke-width=\"3\"/><path d=\"M74 120V96q7-8 14 0v24\" fill=\"none\" stroke=\"#0c0608\" stroke-width=\"3\"/><g fill=\"#0c0608\"><path d=\"M8 92v-10h20v10zM30 92v-10h20v10zM52 92v-12h14l6 5v7z\"/><rect x=\"60\" y=\"74\" width=\"3\" height=\"6\"/></g><g fill=\"#FFD27A\"><rect x=\"11\" y=\"84\" width=\"3\" height=\"3\"/><rect x=\"17\" y=\"84\" width=\"3\" height=\"3\"/><rect x=\"33\" y=\"84\" width=\"3\" height=\"3\"/><rect x=\"39\" y=\"84\" width=\"3\" height=\"3\"/><rect x=\"55\" y=\"83\" width=\"4\" height=\"3\"/></g></svg>"};
@@ -521,10 +563,13 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   const heroCard = document.querySelector('#card .card');
   const bar = document.querySelector('.bar');
   const pick = fan.querySelectorAll('.mini')[4];               // Strawberry Skies
-  const PICK_COLOR = '#FC6C85', TOP = 48, BOT = 18, ARROW_DOWN = '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>';
+  let PICK_COLOR = COLORS[Math.max(lastC, 0)]; const TOP = 48, BOT = 18, ARROW_DOWN = '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>';
   pick.classList.add('pick'); pick.tabIndex = 0; pick.setAttribute('role', 'button');
   pick.setAttribute('aria-label', 'Open your Strawberry Skies card');
-  const uniq = svg => svg.replace(/id="(\w+)"/g, 'id="$1p"').replace(/url\(#(\w+)\)/g, 'url(#$1p)');
+  const uniq = (svg, sf = 'p') => svg.replace(/id="(\w+)"/g, 'id="$1' + sf + '"').replace(/url\(#(\w+)\)/g, 'url(#$1' + sf + ')');
+  // same rooftop silhouette on the top card, the deck, and both sides of the popped card
+  const heroScene = heroCard.querySelector('.photo .scene');
+  heroScene.innerHTML = uniq(SCENES.roof, 'h'); heroScene.classList.add('svgscene');
 
   const tap1 = document.createElement('div');
   tap1.className = 'tap'; tap1.setAttribute('aria-hidden', 'true');
@@ -558,6 +603,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
     deckTop = Math.min(...[...fan.querySelectorAll('.mini')].map(m => m.getBoundingClientRect().top)) - fr.top;
     baseMargin = parseFloat(getComputedStyle(fan).marginTop) || 0;
     const clone = heroCard.cloneNode(true);
+    clone.innerHTML = uniq(clone.innerHTML, 'b');
     clone.style.setProperty('--cc', PICK_COLOR);
     clone.setAttribute('aria-label', 'Strawberry Skies card, back side');
     back.innerHTML = ''; back.appendChild(clone);
@@ -618,6 +664,13 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   lib.addEventListener('click', closeCard);
   addEventListener('keydown', e => { if (e.key === 'Escape') closeCard(); });
   addEventListener('resize', () => { syncRatio(); if (isOpen && !busy){ pop.style.transition = 'none'; size(); pop.offsetWidth; pop.style.transition = ''; } placeTap1(); });
+  const minis = [...fan.querySelectorAll('.mini')], BASE = SONGS.map(x => x[2].toUpperCase());
+  function recolor(cc){
+    cc = cc.toUpperCase(); PICK_COLOR = cc;
+    minis.forEach((m, i) => m.style.setProperty('--mc', i === 4 ? cc : (BASE[i] === cc ? BASE[4] : BASE[i])));
+    pop.querySelector('.front').style.setProperty('--mc', cc);
+  }
+  recolor(PICK_COLOR); onColor = recolor;
   // show the hint once the deck has fanned out
   new IntersectionObserver((es, o) => es.forEach(e => { if (e.isIntersecting){
     setTimeout(() => { placeTap1(); tap1.classList.add('on'); type(tap1, 'click me'); }, 1300); o.disconnect(); } }), {threshold:.35}).observe(fan);
