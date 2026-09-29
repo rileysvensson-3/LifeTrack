@@ -101,7 +101,7 @@ a{color:inherit}
 .loc-mid{flex:1;display:flex;align-items:center;justify-content:center;width:100%}
 .loc .v-loc{font-size:1.2em;text-transform:uppercase;text-align:center}
 .badges{display:grid;grid-template-columns:repeat(4,2.05em);gap:.55em;margin-top:.1em;margin-bottom:.35em}
-.badge{width:2.05em;height:2.05em;border-radius:50%;background:var(--teal);box-shadow:0 0 0 2px #06505D;position:relative}
+.badge{width:2.05em;height:2.05em;border-radius:50%;background:var(--cc);box-shadow:0 0 0 2px color-mix(in srgb, var(--cc) 55%, #000);position:relative;transition:background .6s, box-shadow .6s}
 .badge img{position:absolute;inset:0;width:100%;height:100%;opacity:0;transform:scale(0) rotate(-40deg);transition:.5s cubic-bezier(.3,1.8,.5,1)}
 .player{display:grid;grid-template-columns:1fr;align-items:center;gap:.9em;margin-top:2.2em}
 .player .side{font-family:var(--guer);text-transform:uppercase;font-size:1.45em;line-height:.95;text-align:center}
@@ -225,6 +225,8 @@ button[disabled]{opacity:.6;cursor:wait}
 input[aria-invalid="true"]{outline:3px solid var(--yellow)}
 .foot{margin-top:70px;font-size:17px}
 .foot a{color:var(--yellow)}
+#join .fine{margin:18px 0 0;max-width:none;font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.5;opacity:.7}
+#join .fine a{color:inherit}
 .foot .me{text-decoration:none;color:inherit;transition:color .2s}
 .foot .me:hover,.foot .me:focus-visible{color:var(--yellow)}
 
@@ -296,6 +298,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   .progress{left:50%;transform:translateX(-50%);bottom:14px}
   .nav{font-size:14px}.logo{font-size:24px}
 }
+#join p.fine{font-size:12px}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01s!important;animation:none!important}}
 </style>
 </head>
@@ -413,6 +416,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   </form>
   <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
   <div class="foot">Built in public by <a class="me" href="https://www.instagram.com/rileysvensson.life/" target="_blank" rel="noopener">Riley Svensson</a>. <a href="https://www.instagram.com/life.track.app/" target="_blank" rel="noopener">Follow the build</a></div>
+  <p class="fine">Song preview via <a id="amLink" href="https://music.apple.com/" target="_blank" rel="noopener">Apple Music</a>. All songs belong to their artists and labels.</p>
 </section>
 </main>
 
@@ -516,7 +520,7 @@ input[aria-invalid="true"]{outline:3px solid var(--yellow)}
   const setProg = p => dots.forEach(d => d.style.setProperty('--prog', Math.min(Math.max(p, 0), 1)));
   window.__ltPreview = data => {
     const hit = (data.results || []).find(r => /kid travis/i.test(r.artistName) && /strawberry/i.test(r.trackName) && r.previewUrl);
-    if (hit) audio.src = hit.previewUrl;
+    if (hit){ audio.src = hit.previewUrl; const am = document.getElementById('amLink'); if (am && hit.trackViewUrl) am.href = hit.trackViewUrl; }
   };
   const js = document.createElement('script');
   js.src = 'https://itunes.apple.com/search?term=strawberry+skies+kid+travis&entity=song&limit=10&callback=__ltPreview';
