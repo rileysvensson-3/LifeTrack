@@ -48,9 +48,9 @@
 .mk-join.on{display:block;animation:mkIn .6s cubic-bezier(.2,.9,.3,1)}
 @keyframes mkIn{from{opacity:0;transform:translateY(14px)}}
 .mk-join h3{font-family:var(--stella);font-weight:400;font-size:clamp(34px,4vw,64px);line-height:1}
-.mk-join p{margin:10px auto 20px;max-width:34ch}
-#create .mk-join button[disabled]{opacity:.6;cursor:wait}
-.mk-join .form-msg{margin:16px auto 0!important}
+.mk-down{display:inline-block;margin-top:14px;width:clamp(44px,3.6vw,64px);height:clamp(44px,3.6vw,64px);border-radius:50%}
+.mk-down svg{width:100%;height:100%;fill:none;stroke:var(--yellow);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;animation:bob 1.2s ease-in-out infinite}
+.mk-down:hover svg{stroke:var(--white)}
 /* editor sheet */
 .mk-sheet{position:fixed;left:50%;bottom:0;z-index:40;width:min(560px,100%);transform:translate(-50%,105%);transition:transform .35s cubic-bezier(.2,.9,.3,1);
   background:var(--black);border-top:5px solid var(--tan);padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));text-align:left;color:var(--white)}
@@ -95,17 +95,7 @@
     </div>
     <div class="mk-join" id="mkJoin">
       <h3>Want to keep it?</h3>
-      <p>Join the waitlist and make your real cards when LifeTrack launches. Free on iPhone.</p>
-      <form id="mkForm" action="https://formspree.io/f/xppwyepe" method="POST" novalidate>
-        <label for="mkEmail" style="position:absolute;left:-9999px">Email</label>
-        <input id="mkEmail" type="email" name="email" placeholder="Email" autocomplete="email" required>
-        <input type="hidden" name="_subject" value="New LifeTrack waitlist signup (Try it)">
-        <input type="hidden" name="source" value="try-it-card">
-        <input type="hidden" name="song" id="mkSongField" value="">
-        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
-        <button type="submit">Join the waitlist!</button>
-      </form>
-      <p class="form-msg" id="mkFormMsg" role="status" aria-live="polite"></p>
+      <a class="mk-down" href="#join" aria-label="Join the waitlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"/></svg></a>
     </div>
     <input class="mk-photo-in" id="mkPhoto" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
   </div>
@@ -303,33 +293,25 @@
   }
 
 
-  /* ---------- waitlist: the only way to keep a card is to sign up ---------- */
+  /* ---------- waitlist: the arrow sends them to the one signup form at the bottom ---------- */
+  const mainForm = document.getElementById('waitlist');
+  function hidden(name){
+    let f = mainForm && mainForm.querySelector('input[name="' + name + '"]');
+    if (mainForm && !f){ f = document.createElement('input'); f.type = 'hidden'; f.name = name; mainForm.appendChild(f); }
+    return f;
+  }
   function revealJoin(){
-    $('mkSongField').value = state.song ? state.song.trackName + ' - ' + state.song.artistName : '';
+    // signups that come from the card carry the song they picked
+    const song = hidden('song'), src = hidden('source');
+    if (song) song.value = state.song ? state.song.trackName + ' - ' + state.song.artistName : '';
+    if (src) src.value = 'try-it-card';
     $('mkJoin').classList.add('on');
   }
-  const mkForm = $('mkForm'), mkMsg = $('mkFormMsg');
-  const joined = () => {
-    mkForm.remove(); mkMsg.className = 'form-msg ok';
-    mkMsg.textContent = "You're on the list. We'll let you know the second LifeTrack launches.";
-    const main = document.getElementById('waitlist'), mainMsg = document.getElementById('formMsg');
-    if (main){ main.remove(); if (mainMsg){ mainMsg.className = 'form-msg ok'; mainMsg.textContent = "You're already on the list. See you at launch."; } }
-  };
-  mkForm.addEventListener('submit', async e => {
+  sec.querySelector('.mk-down').addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
-    const email = $('mkEmail'), btn = mkForm.querySelector('button');
-    if (!email.checkValidity()){
-      email.setAttribute('aria-invalid', 'true'); mkMsg.className = 'form-msg err';
-      mkMsg.textContent = 'Drop a real email so we can reach you.'; email.focus(); return;
-    }
-    email.removeAttribute('aria-invalid'); btn.disabled = true; btn.textContent = 'Joining...'; mkMsg.textContent = '';
-    try {
-      const res = await fetch(mkForm.action, {method: 'POST', body: new FormData(mkForm), headers: {Accept: 'application/json'}});
-      if (!res.ok){ const d = await res.json().catch(() => ({})); throw new Error(d.errors ? d.errors.map(x => x.message).join(', ') : 'Something went wrong.'); }
-      joined();
-    } catch (err){
-      mkMsg.className = 'form-msg err'; mkMsg.textContent = err.message.replace(/\.?$/, '.') + ' Try again in a sec.';
-      btn.disabled = false; btn.textContent = 'Join the waitlist!';
-    }
+    const join = document.getElementById('join'), email = document.getElementById('email');
+    if (!join) return;
+    join.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center'});
+    if (email) setTimeout(() => email.focus({preventScroll: true}), 700);
   });
 })();
