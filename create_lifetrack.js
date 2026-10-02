@@ -56,6 +56,7 @@
 .mk-sheet{position:fixed;left:50%;bottom:0;z-index:40;width:min(560px,100%);transform:translate(-50%,105%);transition:transform .35s cubic-bezier(.2,.9,.3,1);
   background:var(--black);border-top:5px solid var(--tan);padding:18px 20px calc(18px + env(safe-area-inset-bottom,0px));text-align:left;color:var(--white)}
 .mk-sheet.on{transform:translate(-50%,0)}
+@media (max-width:820px){.mk-sheet{display:flex;flex-direction:column;overflow:hidden;transition:transform .3s cubic-bezier(.2,.9,.3,1),bottom .15s}.mk-sheet .mk-res:not(.mk-grid){flex:1 1 auto;min-height:0;max-height:none;overflow:auto}}
 .mk-sheet label{display:block;font-family:var(--guer);font-size:18px;margin-bottom:10px}
 .mk-sheet .mk-line{display:flex;gap:10px;align-items:flex-start}
 .mk-sheet input,.mk-sheet textarea{flex:1;min-width:0;font:inherit;font-size:16px;padding:11px 14px;border:2px solid #333;border-radius:10px;background:#111;color:var(--white);width:100%}
@@ -190,12 +191,19 @@
       if (e.key === 'Escape') close();
       if (e.key === 'Enter' && !c.area){ e.preventDefault(); if (k === 'song'){ clearTimeout(timer); runSearch(inp.value.trim()); } else close(); }
     });
-    setActive(k); sheet.classList.add('on');
-    setTimeout(() => inp.focus({preventScroll: true}), 60);
-    // keep the card in view above the sheet
-    const r = card.getBoundingClientRect();
-    const barH = (document.querySelector('.bar') || {offsetHeight: 60}).offsetHeight, want = barH + 56;
-    if (Math.abs(r.top - want) > 40) scrollTo({top: scrollY + r.top - want, behavior: 'smooth'});
+    setActive(k);
+    if (phone()){
+      // phones: freeze the page where it is, the sheet rises over the bottom of the card and rides on top of the keyboard
+      lockPage(); sheet.classList.add('on'); pinSheet();
+      inp.focus({preventScroll: true});
+    } else {
+      sheet.classList.add('on');
+      setTimeout(() => inp.focus({preventScroll: true}), 60);
+      // desktop: keep the card in view above the sheet
+      const r = card.getBoundingClientRect();
+      const barH = (document.querySelector('.bar') || {offsetHeight: 60}).offsetHeight, want = barH + 56;
+      if (Math.abs(r.top - want) > 40) scrollTo({top: scrollY + r.top - want, behavior: 'smooth'});
+    }
   }
   /* ---------- badges: one slot per category, picked from Riley's badge art ---------- */
   const slots = [...card.querySelectorAll('.badge')].slice(0, BADGES.length);
@@ -224,7 +232,7 @@
     const done = document.createElement('button'); done.type = 'button'; done.className = 'mk-done'; done.textContent = 'Done';
     done.addEventListener('click', close);
     line.append(tabs, done);
-    sheet.classList.add('on'); showCat(i);
+    unlockPage(); unpinSheet(); sheet.classList.add('on'); showCat(i);
     // park the badge row just above the sheet so each pick shows up on the card
     requestAnimationFrame(() => {
       const row = card.querySelector('.badges').getBoundingClientRect(), sheetTop = innerHeight - sheet.offsetHeight;
@@ -256,7 +264,29 @@
       li.appendChild(b); res.appendChild(li);
     });
   }
-  function close(){ if (current && card.contains(document.activeElement)) document.activeElement.blur(); if (sheet.contains(document.activeElement)) document.activeElement.blur(); sheet.classList.remove('on'); current = null; setActive(null); seq++; }
+  function close(){ if (current && card.contains(document.activeElement)) document.activeElement.blur(); if (sheet.contains(document.activeElement)) document.activeElement.blur(); sheet.classList.remove('on'); unpinSheet(); unlockPage(); current = null; setActive(null); seq++; }
+
+  /* ---------- phones: lock the page and keep the sheet sitting on the keyboard ---------- */
+  const phone = () => matchMedia('(max-width:820px)').matches;
+  let locked = false, savedY = 0;
+  function lockPage(){
+    if (locked) return; locked = true; savedY = scrollY;
+    Object.assign(document.body.style, {position: 'fixed', top: -savedY + 'px', left: '0', right: '0', width: '100%'});
+  }
+  function unlockPage(){
+    if (!locked) return; locked = false;
+    Object.assign(document.body.style, {position: '', top: '', left: '', right: '', width: ''});
+    scrollTo({top: savedY, behavior: 'instant'});
+  }
+  function pinSheet(){
+    const vv = window.visualViewport;
+    if (!vv || !phone() || !sheet.classList.contains('on')) return;
+    const kb = Math.max(0, innerHeight - vv.height - vv.offsetTop);   // keyboard height (0 when it's down)
+    sheet.style.bottom = kb + 'px';
+    sheet.style.maxHeight = Math.max(160, vv.height - 70) + 'px';
+  }
+  function unpinSheet(){ sheet.style.bottom = ''; sheet.style.maxHeight = ''; }
+  if (window.visualViewport){ visualViewport.addEventListener('resize', pinSheet); visualViewport.addEventListener('scroll', pinSheet); }
   document.addEventListener('click', e => { if (current && !sheet.contains(e.target)) close(); });
   addEventListener('keydown', e => { if (e.key === 'Escape' && current) close(); });
 
