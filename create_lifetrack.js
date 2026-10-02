@@ -122,6 +122,7 @@
   lib.after(sec);
   const $ = id => document.getElementById(id);
 
+
   /* ---------- the card, cloned from the hero ---------- */
   const wrap = document.createElement('div');
   wrap.className = 'mk-card s1 s2 s3 s4 s5';
