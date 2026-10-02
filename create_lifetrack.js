@@ -94,7 +94,7 @@
       <button type="button" id="mkPlay" hidden>Play song</button>
     </div>
     <div class="mk-join" id="mkJoin">
-      <h3>Want to keep it?</h3>
+      <h3>Want the real thing?</h3>
       <a class="mk-down" href="#join" aria-label="Join the waitlist"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15M6 13l6 6 6-6"/></svg></a>
     </div>
     <input class="mk-photo-in" id="mkPhoto" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
