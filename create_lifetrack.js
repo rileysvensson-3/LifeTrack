@@ -122,16 +122,6 @@
   lib.after(sec);
   const $ = id => document.getElementById(id);
 
-  const nav = document.querySelector('.nav'), join = nav && nav.querySelector('a[href="#join"]');
-  if (join){
-    const a = document.createElement('a'); a.href = '#create'; a.textContent = 'Try it';
-    nav.insertBefore(a, join);
-    a.addEventListener('click', e => {
-      e.preventDefault(); const bar = document.querySelector('.bar');
-      scrollTo({top: sec.getBoundingClientRect().top + scrollY - (bar ? bar.offsetHeight : 0), behavior: 'smooth'});
-    });
-  }
-
   /* ---------- the card, cloned from the hero ---------- */
   const wrap = document.createElement('div');
   wrap.className = 'mk-card s1 s2 s3 s4 s5';
